@@ -1,0 +1,6 @@
+docker:
+  network:
+    interfaces:
+      v4:
+        subnet: 192.54.0.0/16
+        gateway: 192.54.0.1

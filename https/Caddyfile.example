@@ -1,0 +1,23 @@
+{
+    email youremail@gmail.com
+}
+
+panel.<yourdomain>.com {
+    reverse_proxy panel:80
+}
+
+portainer.<yourdomain>.com {
+    reverse_proxy portainer:9000
+}
+
+wings.<yourdomain>.com {
+    reverse_proxy wings:443
+}
+
+code.<yourdomain>.com {
+    reverse_proxy code-server:8080
+}
+
+code.<yourdomain>.com {
+    reverse_proxy filebrowser:80
+}

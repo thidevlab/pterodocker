@@ -1,0 +1,113 @@
+version: "3.8"
+
+x-common:
+  database:
+    &db-environment
+    MYSQL_PASSWORD: &db-password "CHANGE_ME"
+    MYSQL_ROOT_PASSWORD: "CHANGE_ME_TOO"
+  panel:
+    &panel-environment
+    APP_URL: "https://panel.yourdomain.com" # CHANGE ME
+    APP_TIMEZONE: "America/New_York"
+
+services:
+  caddy:
+    image: caddy:2.7
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/opt/pterodocker/caddy/etc:/etc/caddy/"
+      - "/opt/pterodocker/caddy/caddy_data:/data"
+      - "/opt/pterodocker/caddy/caddy_config:/config"
+      
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    ports:
+      - "8082:80"
+    volumes:
+      - /:/srv
+    user: "0:0"
+
+  code-server:
+    image: codercom/code-server:latest
+    container_name: code-server
+    restart: always
+    ports:
+      - "8081:8080"  # Change if needed
+    volumes:
+      - "/opt/pterodocker:/home/coder/project"  # Change to your project folder
+      - "/opt/pterodocker/code-server:/home/coder/.config/code-server"
+    environment:
+      - PASSWORD=admin  # Change this to a secure password
+      - SUDO_PASSWORD=admin  # Allows sudo inside the container
+    user: "0:0"  # Adjust to your user ID if needed
+
+
+  wings:
+    image: ghcr.io/pterodactyl/wings:latest
+    restart: always
+    ports:
+      - "2022:2022"
+    tty: true
+    environment:
+      TZ: "America/New_York"
+      WINGS_UID: 988
+      WINGS_GID: 988
+      WINGS_USERNAME: pterodactyl
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/var/lib/docker/containers:/var/lib/docker/containers"
+      - "/opt/pterodocker/wings/config:/etc/pterodactyl"
+      - "/var/lib/pterodactyl:/var/lib/pterodactyl"
+      - "/var/log/pterodactyl:/var/log/pterodactyl"
+      - "/tmp/pterodactyl/:/tmp/pterodactyl/"
+
+  database:
+    image: mariadb:10.5
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - "/opt/pterodocker/panel/database:/var/lib/mysql"
+    environment:
+      <<: *db-environment
+      MYSQL_DATABASE: "panel"
+      MYSQL_USER: "pterodactyl"
+
+  cache:
+    image: redis:alpine
+    restart: always
+
+  panel:
+    image: ghcr.io/pterodactyl/panel:latest
+    restart: always
+    volumes:
+      - "/opt/pterodocker/panel/appvar/:/app/var/"
+      - "/opt/pterodocker/panel/nginx/:/etc/nginx/http.d/"
+      - "/opt/pterodocker/panel/logs/:/app/storage/logs"
+    links:
+      - database
+      - cache
+    environment:
+      <<: [*panel-environment]
+      DB_PASSWORD: *db-password
+      APP_ENV: "production"
+      CACHE_DRIVER: "redis"
+      SESSION_DRIVER: "redis"
+      QUEUE_DRIVER: "redis"
+      REDIS_HOST: "cache"
+      DB_HOST: "database"
+      DB_PORT: "3306"
+
+networks:
+  ptero0:
+    name: ptero0
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "192.55.0.0/16"
+    driver_opts:
+      com.docker.network.bridge.name: ptero0
