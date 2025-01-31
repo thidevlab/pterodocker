@@ -7,10 +7,12 @@ x-common:
     MYSQL_ROOT_PASSWORD: "CHANGE_ME_TOO"
   panel:
     &panel-environment
-    APP_URL: "https://panel.yourdomain.com" # CHANGE ME
+    APP_URL: "https://panel.yourdomain.com"
     APP_TIMEZONE: "America/New_York"
 
 services:
+
+  # CORE
   caddy:
     image: caddy:2.7
     restart: always
@@ -22,31 +24,6 @@ services:
       - "/opt/pterodocker/caddy/etc:/etc/caddy/"
       - "/opt/pterodocker/caddy/caddy_data:/data"
       - "/opt/pterodocker/caddy/caddy_config:/config"
-      
-  filebrowser:
-    image: filebrowser/filebrowser
-    container_name: filebrowser
-    ports:
-      - "8082:80"
-    volumes:
-      - /:/srv
-    user: "0:0"
-
-  code-server:
-    image: codercom/code-server:latest
-    container_name: code-server
-    restart: always
-    ports:
-      - "8081:8080"  # Change if needed
-    volumes:
-      - "/opt/pterodocker:/home/coder/project"  # Change to your project folder
-      - "/opt/pterodocker/code-server:/home/coder/.config/code-server"
-    environment:
-      - PASSWORD=admin  # Change this to a secure password
-      - SUDO_PASSWORD=admin  # Allows sudo inside the container
-    user: "0:0"  # Adjust to your user ID if needed
-
-
   wings:
     image: ghcr.io/pterodactyl/wings:latest
     restart: always
@@ -65,7 +42,6 @@ services:
       - "/var/lib/pterodactyl:/var/lib/pterodactyl"
       - "/var/log/pterodactyl:/var/log/pterodactyl"
       - "/tmp/pterodactyl/:/tmp/pterodactyl/"
-
   database:
     image: mariadb:10.5
     restart: always
@@ -76,11 +52,9 @@ services:
       <<: *db-environment
       MYSQL_DATABASE: "panel"
       MYSQL_USER: "pterodactyl"
-
   cache:
     image: redis:alpine
     restart: always
-
   panel:
     image: ghcr.io/pterodactyl/panel:latest
     restart: always
@@ -102,6 +76,28 @@ services:
       DB_HOST: "database"
       DB_PORT: "3306"
 
+  # UTILS
+
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    volumes:
+      - /:/srv
+    user: "0:0"
+  code-server:
+    image: codercom/code-server:latest
+    container_name: code-server
+    restart: always
+    volumes:
+      - "/opt/pterodocker:/home/coder/project"  # Change to your project folder
+      - "/opt/pterodocker/code-server:/home/coder/.config/code-server"
+    environment:
+      - PASSWORD=admin  # Change this to a secure password
+      - SUDO_PASSWORD=admin  # Allows sudo inside the container
+    user: "0:0"  # Adjust to your user ID if needed
+
+
+  
 networks:
   ptero0:
     name: ptero0
